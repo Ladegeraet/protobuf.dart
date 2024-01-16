@@ -31,16 +31,21 @@ abstract class GeneratedMessage {
   _FieldSet get _fieldSet => __fieldSet!;
 
   GeneratedMessage() {
-    __fieldSet = _FieldSet(this, info_, eventPlugin);
-    if (eventPlugin != null) eventPlugin!.attach(this);
+    __fieldSet = _FieldSet(this, info_);
+
+    // The following two returns confuse dart2js into avoiding inlining the
+    // constructor *body*. A `@pragma('dart2js:never-inline')` annotation on
+    // the constructor affects inlining of the generative constructor factory,
+    // not the constructor body that is called from all the subclasses.
+    //
+    // TODO(http://dartbug.com/49475): Remove this when there is an annotation
+    // that will give the desired result.
+    return;
+    return; // ignore: dead_code
   }
 
   // Overridden by subclasses.
   BuilderInfo get info_;
-
-  /// Subclasses can override this getter to be notified of changes
-  /// to protobuf fields.
-  EventPlugin? get eventPlugin => null;
 
   /// Creates a deep copy of the fields in this message.
   /// (The generated code uses [mergeFromMessage].)
@@ -132,7 +137,7 @@ abstract class GeneratedMessage {
   @override
   int get hashCode => _fieldSet._hashCode;
 
-  /// Returns a String representation of this message.
+  /// Returns a [String] representation of this message.
   ///
   /// This representation is similar to, but not quite, the Protocol Buffer
   /// TextFormat. Each field is printed on its own line. Sub-messages are
@@ -143,7 +148,7 @@ abstract class GeneratedMessage {
   @override
   String toString() => toDebugString();
 
-  /// Returns a String representation of this message.
+  /// Returns a [String] representation of this message.
   ///
   /// This generates the same output as [toString], but can be used by mixins
   /// to compose debug strings with additional information.
@@ -153,6 +158,11 @@ abstract class GeneratedMessage {
     return out.toString();
   }
 
+  /// Throws a [StateError] if the message has required fields without a value.
+  ///
+  /// This library does not check in any of the methods that required fields in
+  /// have values. Use this method if you need to check that required fields
+  /// have values.
   void check() {
     if (!isInitialized()) {
       final invalidFields = <String>[];
@@ -162,15 +172,18 @@ abstract class GeneratedMessage {
     }
   }
 
+  /// Serialize the message as the protobuf binary format.
   Uint8List writeToBuffer() {
     final out = CodedBufferWriter();
     writeToCodedBufferWriter(out);
     return out.toBuffer();
   }
 
+  /// Same as [writeToBuffer], but serializes to the given [CodedBufferWriter].
   void writeToCodedBufferWriter(CodedBufferWriter output) =>
       _writeToCodedBufferWriter(_fieldSet, output);
 
+  /// Same as [mergeFromBuffer], but takes a [CodedBufferReader] input.
   void mergeFromCodedBufferReader(CodedBufferReader input,
       [ExtensionRegistry extensionRegistry = ExtensionRegistry.EMPTY]) {
     final meta = _fieldSet._meta;
@@ -331,19 +344,6 @@ abstract class GeneratedMessage {
   /// default value if it is not set.
   dynamic getField(int tagNumber) => _fieldSet._getField(tagNumber);
 
-  /// Creates List implementing a mutable repeated field.
-  ///
-  /// Mixins may override this method to change the List type. To ensure
-  /// that the protobuf can be encoded correctly, the returned List must
-  /// validate all items added to it. This can most easily be done
-  /// using the [FieldInfo.check] function.
-  List<T> createRepeatedField<T>(int tagNumber, FieldInfo<T> fi) =>
-      PbList<T>(check: fi.check!);
-
-  /// Creates a Map representing a map field.
-  Map<K, V> createMapField<K, V>(int tagNumber, MapFieldInfo<K, V> fi) =>
-      PbMap<K, V>(fi.keyFieldType, fi.valueFieldType);
-
   /// Returns the value of a field, ignoring any defaults.
   ///
   /// For unset or cleared fields, returns null.
@@ -402,6 +402,17 @@ abstract class GeneratedMessage {
     _fieldSet._setField(tagNumber, value);
   }
 
+  /// Sets the value of a field by its [tagNumber].
+  /// This method should be used for optional fields when the nullable option
+  /// is set. When `null` is passed as value, the field is cleared.
+  ///
+  /// Throws an [ArgumentError] if [value] does not match the type associated
+  /// with [tagNumber].
+  @pragma('dart2js:noInline')
+  void setFieldNullable(int tagNumber, Object? value) {
+    _fieldSet._setFieldNullable(tagNumber, value);
+  }
+
   /// For generated code only.
   /// @nodoc
   T $_get<T>(int index, T defaultValue) =>
@@ -413,15 +424,20 @@ abstract class GeneratedMessage {
 
   /// For generated code only.
   /// @nodoc
+  T $_getNullable<T>(int index) => _fieldSet._$getNullable<T>(index);
+
+  /// For generated code only.
+  /// @nodoc
   T $_ensure<T>(int index) => _fieldSet._$ensure<T>(index);
 
   /// For generated code only.
   /// @nodoc
-  List<T> $_getList<T>(int index) => _fieldSet._$getList<T>(index);
+  PbList<T> $_getList<T>(int index) => _fieldSet._$getList<T>(index);
 
   /// For generated code only.
   /// @nodoc
-  Map<K, V> $_getMap<K, V>(int index) => _fieldSet._$getMap<K, V>(this, index);
+  PbMap<K, V> $_getMap<K, V>(int index) =>
+      _fieldSet._$getMap<K, V>(this, index);
 
   /// For generated code only.
   /// @nodoc
@@ -434,12 +450,20 @@ abstract class GeneratedMessage {
 
   /// For generated code only.
   /// @nodoc
+  bool? $_getBNullable(int index) => _fieldSet._$getBNullable(index);
+
+  /// For generated code only.
+  /// @nodoc
   int $_getI(int index, int defaultValue) =>
       _fieldSet._$getI(index, defaultValue);
 
   /// For generated code only.
   /// @nodoc
   int $_getIZ(int index) => _fieldSet._$getIZ(index);
+
+  /// For generated code only.
+  /// @nodoc
+  int? $_getINullable(int index) => _fieldSet._$getINullable(index);
 
   /// For generated code only.
   /// @nodoc
@@ -452,7 +476,15 @@ abstract class GeneratedMessage {
 
   /// For generated code only.
   /// @nodoc
+  String? $_getSNullable(int index) => _fieldSet._$getSNullable(index);
+
+  /// For generated code only.
+  /// @nodoc
   Int64 $_getI64(int index) => _fieldSet._$getI64(index);
+
+  /// For generated code only.
+  /// @nodoc
+  Int64? $_getI64Nullable(int index) => _fieldSet._$getI64Nullable(index);
 
   /// For generated code only.
   /// @nodoc
@@ -464,11 +496,26 @@ abstract class GeneratedMessage {
 
   /// For generated code only.
   /// @nodoc
+  void $_setBoolNullable(int index, bool? value) =>
+      _fieldSet._$setNullable(index, value);
+
+  /// For generated code only.
+  /// @nodoc
   void $_setBytes(int index, List<int> value) => _fieldSet._$set(index, value);
 
   /// For generated code only.
   /// @nodoc
+  void $_setBytesNullable(int index, List<int>? value) =>
+      _fieldSet._$setNullable(index, value);
+
+  /// For generated code only.
+  /// @nodoc
   void $_setString(int index, String value) => _fieldSet._$set(index, value);
+
+  /// For generated code only.
+  /// @nodoc
+  void $_setStringNullable(int index, String? value) =>
+      _fieldSet._$setNullable(index, value);
 
   /// For generated code only.
   /// @nodoc
@@ -482,7 +529,21 @@ abstract class GeneratedMessage {
 
   /// For generated code only.
   /// @nodoc
+  void $_setFloatNullable(int index, double? value) {
+    if (value != null && !_isFloat32(value)) {
+      _fieldSet._$check(index, value);
+    }
+    _fieldSet._$setNullable(index, value);
+  }
+
+  /// For generated code only.
+  /// @nodoc
   void $_setDouble(int index, double value) => _fieldSet._$set(index, value);
+
+  /// For generated code only.
+  /// @nodoc
+  void $_setDoubleNullable(int index, double? value) =>
+      _fieldSet._$setNullable(index, value);
 
   /// For generated code only.
   /// @nodoc
@@ -492,6 +553,15 @@ abstract class GeneratedMessage {
       _fieldSet._$check(index, value);
     }
     _fieldSet._$set(index, value);
+  }
+
+  /// For generated code only.
+  /// @nodoc
+  void $_setSignedInt32Nullable(int index, int? value) {
+    if (value != null && !_isSigned32(value)) {
+      _fieldSet._$check(index, value);
+    }
+    _fieldSet._$setNullable(index, value);
   }
 
   /// For generated code only.
@@ -506,7 +576,21 @@ abstract class GeneratedMessage {
 
   /// For generated code only.
   /// @nodoc
+  void $_setUnsignedInt32Nullable(int index, int? value) {
+    if (value != null && !_isUnsigned32(value)) {
+      _fieldSet._$check(index, value);
+    }
+    _fieldSet._$setNullable(index, value);
+  }
+
+  /// For generated code only.
+  /// @nodoc
   void $_setInt64(int index, Int64 value) => _fieldSet._$set(index, value);
+
+  /// For generated code only.
+  /// @nodoc
+  void $_setInt64Nullable(int index, Int64? value) =>
+      _fieldSet._$setNullable(index, value);
 
   // Support for generating a read-only default singleton instance.
 
@@ -576,5 +660,7 @@ extension GeneratedMessageGenericExtensions<T extends GeneratedMessage> on T {
   }
 
   /// Returns a writable deep copy of this message.
+  @UseResult('[GeneratedMessageGenericExtensions.deepCopy] '
+      'does not update the message, returns a new message')
   T deepCopy() => info_.createEmptyInstance!() as T..mergeFromMessage(this);
 }

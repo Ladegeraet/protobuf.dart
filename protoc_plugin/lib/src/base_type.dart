@@ -54,7 +54,10 @@ class BaseType {
           : prefixed;
 
   String getRepeatedDartType(FileGenerator fileGen) =>
-      '$coreImportPrefix.List<${getDartType(fileGen)}>';
+      '$protobufImportPrefix.PbList<${getDartType(fileGen)}>';
+
+  String getRepeatedDartTypeIterable(FileGenerator fileGen) =>
+      '$coreImportPrefix.Iterable<${getDartType(fileGen)}>';
 
   factory BaseType(FieldDescriptorProto field, GenerationContext ctx) {
     String constSuffix;

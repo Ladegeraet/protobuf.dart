@@ -2,7 +2,6 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-import 'package:protobuf/protobuf.dart';
 import 'package:protobuf_benchmarks/benchmark_base.dart';
 import 'package:protobuf_benchmarks/generated/google_message1_proto2.pb.dart'
     as p2;
@@ -24,8 +23,11 @@ class Benchmark extends BenchmarkBase {
 
   @override
   void run() {
+    // ignore: unused_result
     _message1Proto2.deepCopy();
+    // ignore: unused_result
     _message1Proto3.deepCopy();
+    // ignore: unused_result
     _message2.deepCopy();
   }
 }

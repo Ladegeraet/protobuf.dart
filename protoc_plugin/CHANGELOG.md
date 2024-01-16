@@ -1,3 +1,59 @@
+## 22.0.0-dev
+
+* Remove `PbEventMixin` mixin. ([#738])
+* Type of repeated fields is now `PbList` (instead of `List`), type of map
+  fields is now `PbMap` (instead of `Map`). ([#903])
+
+  This change requires protobuf-4.0.0.
+* Generated files now export `GeneratedMessageGenericExtensions` from the
+  protobuf library. ([#503], [#907])
+* Generate doc comments for enum types and values, rpc services and methods.
+  ([#900], [#909])
+* `deprecated` options in messages, grpc services and methods, and enum types
+  and values are now handled to generate Dart `@deprecated` annotations.
+  ([#900], [#908])
+
+[#738]: https://github.com/google/protobuf.dart/issues/738
+[#903]: https://github.com/google/protobuf.dart/pull/903
+[#503]: https://github.com/google/protobuf.dart/issues/503
+[#907]: https://github.com/google/protobuf.dart/pull/907
+[#900]: https://github.com/google/protobuf.dart/issues/900
+[#909]: https://github.com/google/protobuf.dart/pull/909
+[#908]: https://github.com/google/protobuf.dart/pull/908
+
+## 21.1.2
+
+* Fix a bug in comment parsing. ([#871], [#879])
+
+[#871]: https://github.com/google/protobuf.dart/issues/871
+[#879]: https://github.com/google/protobuf.dart/pull/879
+
+## 21.1.1
+
+* Rename a local variable used with message constructors to avoid potential
+  conflicts with protobuf field names.
+
+## 21.1.0
+
+* Generate code comments for annotated protobuf inputs. ([#161])
+* Generate message constructor arguments by default again. New flag
+  `disable_constructor_args` disables generating the arguments.
+
+  Constructor arguments were removed in 21.0.0 as they increase dart2js binary
+  sizes even when the arguments are not used.
+
+  Example usage to disable constructor arguments:
+
+  ```
+  protoc --dart_out='disable_constructor_args,<other options>:.' ...
+  ```
+
+  ([#850], [#855])
+
+[#161]: https://github.com/google/protobuf.dart/issues/161
+[#850]: https://github.com/google/protobuf.dart/issues/850
+[#855]: https://github.com/google/protobuf.dart/pull/855
+
 ## 21.0.2
 
 * Fix missing protobuf import in generated grpc files. ([#844])

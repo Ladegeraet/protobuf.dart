@@ -18,12 +18,17 @@ TEST_PROTO_LIST = \
 	google/protobuf/timestamp \
 	google/protobuf/type \
 	google/protobuf/unittest_import \
+	google/protobuf/unittest_import_proto3 \
+	google/protobuf/unittest_import_public_proto3 \
 	google/protobuf/unittest_optimize_for \
 	google/protobuf/unittest_well_known_types \
 	google/protobuf/unittest \
+	google/protobuf/unittest_proto3 \
 	google/protobuf/wrappers \
 	custom_option \
 	dart_name \
+	deprecations \
+	doc_comments \
         default_value_escape \
 	entity \
 	enum_extension \
@@ -78,13 +83,35 @@ PREGENERATED_SRCS=protos/descriptor.proto protos/plugin.proto protos/dart_option
 
 $(TEST_PROTO_LIBS): $(PLUGIN_SRC) $(TEST_PROTO_SRCS)
 	mkdir -p $(TEST_PROTO_DIR)
+
 	protoc\
 		--experimental_allow_proto3_optional\
-		--dart_out=$(TEST_PROTO_DIR)\
+		--dart_out="disable_constructor_args:$(TEST_PROTO_DIR)"\
 		-Iprotos\
 		-I$(TEST_PROTO_SRC_DIR)\
 		--plugin=protoc-gen-dart=$(realpath $(PLUGIN_PATH))\
 		$(TEST_PROTO_SRCS)
+
+	mkdir -p $(TEST_PROTO_DIR)/constructor_args
+
+	protoc\
+		--experimental_allow_proto3_optional\
+		--dart_out="$(TEST_PROTO_DIR)/constructor_args"\
+		-Iprotos\
+		-I$(TEST_PROTO_SRC_DIR)\
+		--plugin=protoc-gen-dart=$(realpath $(PLUGIN_PATH))\
+		$(TEST_PROTO_SRCS)
+
+	mkdir -p $(TEST_PROTO_DIR)/nullable
+
+	protoc\
+		--experimental_allow_proto3_optional\
+		--dart_out="nullable:$(TEST_PROTO_DIR)/nullable"\
+		-Iprotos\
+		-I$(TEST_PROTO_SRC_DIR)\
+		--plugin=protoc-gen-dart=$(realpath $(PLUGIN_PATH))\
+		$(TEST_PROTO_SRCS)
+
 	dart format $(TEST_PROTO_DIR)
 
 update-pregenerated: $(PLUGIN_PATH) $(PREGENERATED_SRCS)
@@ -97,11 +124,11 @@ update-pregenerated: $(PLUGIN_PATH) $(PREGENERATED_SRCS)
 protos: $(PLUGIN_PATH) $(TEST_PROTO_LIBS)
 
 run-tests: protos
-	dart run test
+	dart test
 
 update-goldens: protos
 	rm -rf test/goldens
-	dart run test
+	dart test
 
 clean:
 	rm -rf $(OUTPUT_DIR)

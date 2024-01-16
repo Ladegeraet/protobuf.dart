@@ -1,4 +1,44 @@
-## 3.0.1-dev
+## 4.0.0-dev
+
+* **Breaking:** The following types and members are now removed:
+
+  - `PbEventMixin`
+  - `PbFieldChange`
+  - `EventBuffer`
+  - `GeneratedMessage.createRepeatedField`
+  - `GeneratedMessage.createMapField`
+
+  These were used to implement events, which are unused internally. To keep API
+  surface small (to make it easier to change the library or migrate to another
+  library) these types and members are removed. ([#738])
+
+* **Breaking:** `CodedBufferWriter.writeRawBytes` now takes a `Uint8List`
+  argument (instead of `TypedData`).
+
+* `GeneratedMessageGenericExtensions.deepCopy` is now annotated with
+  `@useResult` and will generate a warning when its result is not used.
+  ([#896])
+
+* **Breaking:** `PbMap.unmodifiable` now takes key and value field types as
+  arguments, instead of another `PbMap`.
+
+  To migrate, use `PbMap.unmodifiable(map.keyFieldType, map.valueFieldType)`
+  instead of `PbMap.unmodifiable(map)`. ([#902])
+
+[#738]: https://github.com/google/protobuf.dart/issues/738
+[#896]: https://github.com/google/protobuf.dart/issues/896
+[#902]: https://github.com/google/protobuf.dart/issues/902
+
+## 3.1.0
+
+* `CodedBufferReader` `readBytes` now copies the returned bytes to avoid
+  accidental sharing of the input buffer with the returned `Uint8List`. New
+  member `readBytesAsView` added with the old behavior. ([#863])
+
+* Avoid sharing the input buffer in unknown length-delimited fields using the
+  new `readBytes`. ([#863])
+
+[#863]: https://github.com/google/protobuf.dart/pull/863
 
 ## 3.0.0
 

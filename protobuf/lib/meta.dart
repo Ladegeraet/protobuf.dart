@@ -4,6 +4,7 @@
 
 /// Provides metadata about GeneratedMessage and ProtobufEnum to
 /// dart-protoc-plugin. (Experimental API; subject to change.)
+/// @nodoc
 library protobuf.meta;
 
 // ignore_for_file: constant_identifier_names
@@ -21,9 +22,6 @@ const GeneratedMessage_reservedNames = <String>[
   'clone',
   'copyWith',
   'createEmptyInstance',
-  'createMapField',
-  'createRepeatedField',
-  'eventPlugin',
   'extensionsAreInitialized',
   'freeze',
   'getDefaultForField',
@@ -49,6 +47,7 @@ const GeneratedMessage_reservedNames = <String>[
   'runtimeType',
   'setExtension',
   'setField',
+  'setFieldNullable',
   'toBuilder',
   'toDebugString',
   'toProto3Json',
@@ -60,25 +59,38 @@ const GeneratedMessage_reservedNames = <String>[
   'writeToJsonMap',
   r'$_ensure',
   r'$_get',
+  r'$_getNullable',
   r'$_getI64',
+  r'$_getI64Nullable',
   r'$_getList',
   r'$_getMap',
   r'$_getN',
   r'$_getB',
   r'$_getBF',
+  r'$_getBNullable',
   r'$_getI',
   r'$_getIZ',
+  r'$_getINullable',
   r'$_getS',
   r'$_getSZ',
+  r'$_getSNullable',
   r'$_has',
   r'$_setBool',
+  r'$_setBoolNullable',
   r'$_setBytes',
+  r'$_setBytesNullable',
   r'$_setDouble',
+  r'$_setDoubleNullable',
   r'$_setFloat',
+  r'$_setFloatNullable',
   r'$_setInt64',
+  r'$_setInt64Nullable',
   r'$_setSignedInt32',
+  r'$_setSignedInt32Nullable',
   r'$_setString',
+  r'$_setStringNullable',
   r'$_setUnsignedInt32',
+  r'$_setUnsignedInt32Nullable',
   r'$_whichOneof',
 ];
 

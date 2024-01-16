@@ -11,7 +11,20 @@ typedef CheckFunc<E> = void Function(E? x);
 
 /// A [ListBase] implementation used for protobuf `repeated` fields.
 class PbList<E> extends ListBase<E> {
+  /// The actual list storing the elements.
+  ///
+  /// Note: We want only one [List] implementation class to be stored here to
+  /// make sure the list operations are monomorphic and can be inlined. In
+  /// constructors make sure initializers for this field all return the same
+  /// implementation class. (e.g. `_GrowableList` on the VM)
   final List<E> _wrappedList;
+
+  /// A growable list, to be used in `unmodifiable` constructor to avoid
+  /// allocating a list every time.
+  ///
+  /// We can't use `const []` as it makes the `_wrappedList` field polymorphic.
+  static final _emptyList = <Never>[];
+
   final CheckFunc<E> _check;
 
   bool _isReadOnly = false;
@@ -23,15 +36,16 @@ class PbList<E> extends ListBase<E> {
         _check = check;
 
   PbList.unmodifiable()
-      : _wrappedList = const [],
+      : _wrappedList = _emptyList,
         _check = _checkNotNull,
         _isReadOnly = true;
 
-  PbList.from(List from)
+  PbList.from(List<E> from)
       : _wrappedList = List<E>.from(from),
         _check = _checkNotNull;
 
   @override
+  @pragma('dart2js:never-inline')
   void add(E element) {
     _checkModifiable('add');
     _check(element);
@@ -39,6 +53,7 @@ class PbList<E> extends ListBase<E> {
   }
 
   @override
+  @pragma('dart2js:never-inline')
   void addAll(Iterable<E> iterable) {
     _checkModifiable('addAll');
     iterable.forEach(_check);
@@ -61,6 +76,7 @@ class PbList<E> extends ListBase<E> {
   }
 
   @override
+  @pragma('dart2js:never-inline')
   void clear() {
     _checkModifiable('clear');
     _wrappedList.clear();
@@ -149,6 +165,16 @@ class PbList<E> extends ListBase<E> {
 
   @override
   int get length => _wrappedList.length;
+
+  @override
+  bool get isEmpty => _wrappedList.isEmpty;
+
+  @override
+  bool get isNotEmpty => _wrappedList.isNotEmpty;
+
+  @override
+  @pragma('dart2js:never-inline')
+  Iterator<E> get iterator => _wrappedList.iterator;
 
   @override
   set length(int newLength) {

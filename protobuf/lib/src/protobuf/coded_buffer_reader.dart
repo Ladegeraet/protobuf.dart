@@ -13,6 +13,11 @@ class CodedBufferReader {
   static const int DEFAULT_SIZE_LIMIT = 64 << 20;
 
   final Uint8List _buffer;
+
+  /// [ByteData] of [_buffer], created once to be able to decode fixed-size
+  /// integers and floats without having to allocate a [ByteData] every time.
+  late final ByteData _byteData = ByteData.sublistView(_buffer);
+
   int _bufferPos = 0;
   int _currentLimit = -1;
   int _lastTag = 0;
@@ -123,26 +128,63 @@ class CodedBufferReader {
   Int64 readUint64() => _readRawVarint64();
   int readSint32() => _decodeZigZag32(readUint32());
   Int64 readSint64() => _decodeZigZag64(readUint64());
-  int readFixed32() => _readByteData(4).getUint32(0, Endian.little);
+
+  int readFixed32() {
+    final pos = _bufferPos;
+    _checkLimit(4);
+    return _byteData.getUint32(pos, Endian.little);
+  }
+
   Int64 readFixed64() => readSfixed64();
-  int readSfixed32() => _readByteData(4).getInt32(0, Endian.little);
+
+  int readSfixed32() {
+    final pos = _bufferPos;
+    _checkLimit(4);
+    return _byteData.getInt32(pos, Endian.little);
+  }
+
   Int64 readSfixed64() {
-    final data = _readByteData(8);
-    final view = Uint8List.view(data.buffer, data.offsetInBytes, 8);
+    final pos = _bufferPos;
+    _checkLimit(8);
+    final view = Uint8List.sublistView(_buffer, pos, pos + 8);
     return Int64.fromBytes(view);
   }
 
   bool readBool() => _readRawVarint32(true) != 0;
-  List<int> readBytes() {
+
+  /// Read a length-delimited field as bytes.
+  Uint8List readBytes() => Uint8List.fromList(readBytesAsView());
+
+  /// Read a length-delimited field as a view of the [CodedBufferReader]'s
+  /// buffer. When storing the returned value directly (instead of e.g. parsing
+  /// it as a UTF-8 string and copying) use [readBytes] instead to avoid
+  /// holding on to the whole message, or copy the returned view.
+  Uint8List readBytesAsView() {
     final length = readInt32();
     _checkLimit(length);
     return Uint8List.view(
         _buffer.buffer, _buffer.offsetInBytes + _bufferPos - length, length);
   }
 
-  String readString() => _utf8.decode(readBytes());
-  double readFloat() => _readByteData(4).getFloat32(0, Endian.little);
-  double readDouble() => _readByteData(8).getFloat64(0, Endian.little);
+  String readString() {
+    final length = readInt32();
+    final stringPos = _bufferPos;
+    _checkLimit(length);
+    return const Utf8Decoder(allowMalformed: true)
+        .convert(_buffer, stringPos, stringPos + length);
+  }
+
+  double readFloat() {
+    final pos = _bufferPos;
+    _checkLimit(4);
+    return _byteData.getFloat32(pos, Endian.little);
+  }
+
+  double readDouble() {
+    final pos = _bufferPos;
+    _checkLimit(8);
+    return _byteData.getFloat64(pos, Endian.little);
+  }
 
   int readTag() {
     if (isAtEnd()) {
@@ -172,7 +214,8 @@ class CodedBufferReader {
         readFixed64();
         return true;
       case WIRETYPE_LENGTH_DELIMITED:
-        readBytes();
+        final length = readInt32();
+        _checkLimit(length);
         return true;
       case WIRETYPE_FIXED32:
         readFixed32();
@@ -251,11 +294,5 @@ class CodedBufferReader {
       if ((byte & 0x80) == 0) return Int64.fromInts(hi, lo);
     }
     throw InvalidProtocolBufferException.malformedVarint();
-  }
-
-  ByteData _readByteData(int sizeInBytes) {
-    _checkLimit(sizeInBytes);
-    return ByteData.view(_buffer.buffer,
-        _buffer.offsetInBytes + _bufferPos - sizeInBytes, sizeInBytes);
   }
 }

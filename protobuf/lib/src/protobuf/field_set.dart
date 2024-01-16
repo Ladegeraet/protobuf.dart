@@ -21,7 +21,6 @@ void _throwFrozenMessageModificationError(String messageName,
 /// JavaScript.
 class _FieldSet {
   final GeneratedMessage? _message;
-  final EventPlugin? _eventPlugin;
 
   /// The value of each non-extension field in a fixed-length array.
   /// The index of a field can be found in [FieldInfo.index].
@@ -74,7 +73,7 @@ class _FieldSet {
   /// the index is not present, the oneof field is unset.
   final Map<int, int>? _oneofCases;
 
-  _FieldSet(this._message, BuilderInfo meta, this._eventPlugin)
+  _FieldSet(this._message, BuilderInfo meta)
       : _values = _makeValueList(meta.byIndex.length),
         _oneofCases = meta.oneofs.isEmpty ? null : <int, int>{};
 
@@ -92,10 +91,10 @@ class _FieldSet {
   String get _messageName => _meta.qualifiedMessageName;
   bool get _hasRequiredFields => _meta.hasRequiredFields;
 
-  /// The FieldInfo for each non-extension field.
+  /// The [FieldInfo] for each non-extension field.
   Iterable<FieldInfo> get _infos => _meta.fieldInfo.values;
 
-  /// The FieldInfo for each non-extension field in tag order.
+  /// The [FieldInfo] for each non-extension field in tag order.
   Iterable<FieldInfo> get _infosSortedByTag => _meta.sortedByTag;
 
   _ExtensionFieldSet _ensureExtensions() =>
@@ -227,10 +226,6 @@ class _FieldSet {
       assert(tagNumber == fi.tagNumber);
 
       // Clear a non-extension field
-      final eventPlugin = _eventPlugin;
-      if (eventPlugin != null && eventPlugin.hasObservers) {
-        eventPlugin.beforeClearField(fi);
-      }
       _values[fi.index!] = null;
 
       final oneofIndex = meta.oneofs[tagNumber];
@@ -280,6 +275,40 @@ class _FieldSet {
     _setNonExtensionFieldUnchecked(meta, fi, value);
   }
 
+  /// Sets a non-repeated field with error-checking.
+  /// This method behaves like [_setField], except if `null` is passed as
+  /// value. In this case, [_clearField] will be called.
+  ///
+  /// Works for both extended and non-extended fields.
+  /// Suitable for public API.
+  void _setFieldNullable(int tagNumber, Object? value) {
+    final meta = _meta;
+    final fi = _nonExtensionInfo(meta, tagNumber);
+    if (fi == null) {
+      final extensions = _extensions;
+      if (extensions == null) {
+        throw ArgumentError('tag $tagNumber not defined in $_messageName');
+      }
+      if (value == null) {
+        _clearField(tagNumber);
+        return;
+      }
+      extensions._setField(tagNumber, value);
+      return;
+    }
+
+    if (fi.isRepeated) {
+      throw ArgumentError(_setFieldFailedMessage(
+          fi, value, 'repeating field (use get + .add())'));
+    }
+    if (value == null) {
+      _clearField(tagNumber);
+      return;
+    }
+    _validateField(fi, value);
+    _setNonExtensionFieldUnchecked(meta, fi, value);
+  }
+
   /// Sets a non-repeated field without validating it.
   ///
   /// Works for both extended and non-extended fields.
@@ -302,7 +331,7 @@ class _FieldSet {
   /// Creates and stores the repeated field if it doesn't exist.
   /// If it's an extension and the list doesn't exist, validates and stores it.
   /// Suitable for decoders.
-  List<T> _ensureRepeatedField<T>(BuilderInfo meta, FieldInfo<T> fi) {
+  PbList<T> _ensureRepeatedField<T>(BuilderInfo meta, FieldInfo<T> fi) {
     assert(!_isReadOnly);
     assert(fi.isRepeated);
     if (fi.index == null) {
@@ -311,7 +340,7 @@ class _FieldSet {
     final value = _getFieldOrNull(fi);
     if (value != null) return value;
 
-    final newValue = fi._createRepeatedField(_message!);
+    final newValue = fi._createRepeatedField();
     _setNonExtensionFieldUnchecked(meta, fi, newValue);
     return newValue;
   }
@@ -324,9 +353,9 @@ class _FieldSet {
     final value = _getFieldOrNull(fi);
     if (value != null) return value;
 
-    final newValue = fi._createMapField(_message!);
+    final newValue = fi._createMapField();
     _setNonExtensionFieldUnchecked(meta, fi, newValue);
-    return newValue as PbMap<K, V>;
+    return newValue;
   }
 
   /// Sets a non-extended field and fires events.
@@ -341,14 +370,6 @@ class _FieldSet {
       _oneofCases![oneofIndex] = tag;
     }
 
-    // It is important that the callback to the observers is not moved to the
-    // beginning of this method but happens just before the value is set.
-    // Otherwise the observers will be notified about 'clearField' and
-    // 'setField' events in an incorrect order.
-    final eventPlugin = _eventPlugin;
-    if (eventPlugin != null && eventPlugin.hasObservers) {
-      eventPlugin.beforeSetField(fi, value);
-    }
     _values[fi.index!] = value;
   }
 
@@ -383,7 +404,7 @@ class _FieldSet {
   }
 
   /// The implementation of a generated getter for repeated fields.
-  List<T> _$getList<T>(int index) {
+  PbList<T> _$getList<T>(int index) {
     final value = _values[index];
     if (value != null) return value;
 
@@ -394,25 +415,24 @@ class _FieldSet {
       return fi.readonlyDefault;
     }
 
-    final list = fi._createRepeatedFieldWithType<T>(_message!);
+    final list = fi._createRepeatedFieldWithType<T>();
     _setNonExtensionFieldUnchecked(_meta, fi, list);
     return list;
   }
 
   /// The implementation of a generated getter for map fields.
-  Map<K, V> _$getMap<K, V>(GeneratedMessage parentMessage, int index) {
+  PbMap<K, V> _$getMap<K, V>(GeneratedMessage parentMessage, int index) {
     final value = _values[index];
-    if (value != null) return value as Map<K, V>;
+    if (value != null) return value;
 
     final fi = _nonExtensionInfoByIndex(index) as MapFieldInfo<K, V>;
     assert(fi.isMapField);
 
     if (_isReadOnly) {
-      return PbMap<K, V>.unmodifiable(
-          PbMap<K, V>(fi.keyFieldType, fi.valueFieldType));
+      return PbMap<K, V>.unmodifiable(fi.keyFieldType, fi.valueFieldType);
     }
 
-    final map = fi._createMapField(_message!);
+    final map = fi._createMapField();
     _setNonExtensionFieldUnchecked(_meta, fi, map);
     return map;
   }
@@ -431,6 +451,9 @@ class _FieldSet {
   /// `false`.
   bool _$getBF(int index) => _values[index] ?? false;
 
+  /// The implementation of a generated getter for nullable `bool` fields.
+  bool? _$getBNullable(int index) => _values[index];
+
   /// The implementation of a generated getter for int fields.
   int _$getI(int index, int? defaultValue) {
     var value = _values[index];
@@ -444,6 +467,9 @@ class _FieldSet {
   /// The implementation of a generated getter for `int` fields (int32, uint32,
   /// fixed32, sfixed32) that default to `0`.
   int _$getIZ(int index) => _values[index] ?? 0;
+
+  /// The implementation of a generated getter for nullable int fields.
+  int? _$getINullable(int index) => _values[index];
 
   /// The implementation of a generated getter for String fields.
   String _$getS(int index, String? defaultValue) {
@@ -459,12 +485,18 @@ class _FieldSet {
   /// the empty string.
   String _$getSZ(int index) => _values[index] ?? '';
 
+  /// The implementation of a generated getter for nullable String fields.
+  String? _$getSNullable(int index) => _values[index];
+
   /// The implementation of a generated getter for Int64 fields.
   Int64 _$getI64(int index) {
     var value = _values[index];
     value ??= _getDefault(_nonExtensionInfoByIndex(index));
     return value;
   }
+
+  /// The implementation of a generated getter for nullable Int64 fields.
+  Int64? _$getI64Nullable(int index) => _values[index];
 
   /// The implementation of a generated 'has' method.
   bool _$has(int index) {
@@ -486,10 +518,6 @@ class _FieldSet {
     if (value == null) {
       _$check(index, value); // throw exception for null value
     }
-    final eventPlugin = _eventPlugin;
-    if (eventPlugin != null && eventPlugin.hasObservers) {
-      eventPlugin.beforeSetField(_nonExtensionInfoByIndex(index), value);
-    }
     final meta = _meta;
     final tag = meta.byIndex[index].tagNumber;
     final oneofIndex = meta.oneofs[tag];
@@ -504,10 +532,24 @@ class _FieldSet {
     _values[index] = value;
   }
 
+  void _$setNullable(int index, Object? value) {
+    assert(!_nonExtensionInfoByIndex(index).isRepeated);
+    assert(value == null || _$check(index, value));
+    if (value == null) {
+      _clearField(_meta.byIndex[index].tagNumber);
+      return;
+    }
+
+    _$set(index, value);
+  }
+
   bool _$check(int index, var newValue) {
     _validateField(_nonExtensionInfoByIndex(index), newValue);
     return true; // Allows use in an assertion.
   }
+
+  /// The implementation of a generated nullable getter.
+  T _$getNullable<T>(int index) => _values[index];
 
   // Bulk operations reading or writing multiple fields
 
@@ -516,25 +558,8 @@ class _FieldSet {
     if (_unknownFields != null) {
       _unknownFields!.clear();
     }
-
-    final extensions = _extensions;
-
-    final eventPlugin = _eventPlugin;
-    if (eventPlugin != null && eventPlugin.hasObservers) {
-      for (final fi in _infos) {
-        if (_values[fi.index!] != null) {
-          eventPlugin.beforeClearField(fi);
-        }
-      }
-      if (extensions != null) {
-        for (final key in extensions._tagNumbers) {
-          final fi = extensions._getInfoOrNull(key)!;
-          eventPlugin.beforeClearField(fi);
-        }
-      }
-    }
     if (_values.isNotEmpty) _values.fillRange(0, _values.length, null);
-    extensions?._clearValues();
+    _extensions?._clearValues();
   }
 
   bool _equals(_FieldSet o) {
@@ -882,15 +907,13 @@ class _FieldSet {
       if (fieldInfo.isMapField) {
         final PbMap? map = _values[index];
         if (map != null) {
-          _values[index] = (fieldInfo as MapFieldInfo)
-              ._createMapField(_message!)
+          _values[index] = (fieldInfo as MapFieldInfo)._createMapField()
             ..addAll(map);
         }
       } else if (fieldInfo.isRepeated) {
         final PbList? list = _values[index];
         if (list != null) {
-          _values[index] = fieldInfo._createRepeatedField(_message!)
-            ..addAll(list);
+          _values[index] = fieldInfo._createRepeatedField()..addAll(list);
         }
       }
     }

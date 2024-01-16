@@ -74,10 +74,12 @@ void main() {
   });
   test('testMessageGenerator', () {
     final options = parseGenerationOptions(
-        CodeGeneratorRequest(), CodeGeneratorResponse())!;
+        CodeGeneratorRequest()..parameter = 'disable_constructor_args',
+        CodeGeneratorResponse())!;
 
     final fg = FileGenerator(fd, options);
-    final mg = MessageGenerator.topLevel(md, fg, {}, null, <String>{}, 0);
+    final mg =
+        MessageGenerator.topLevel(md, fg, {}, null, <String>{}, 0, false);
 
     final ctx = GenerationContext(options);
     mg.register(ctx);
@@ -99,9 +101,11 @@ void main() {
 
   test('testMetadataIndices', () {
     final options = parseGenerationOptions(
-        CodeGeneratorRequest(), CodeGeneratorResponse())!;
+        CodeGeneratorRequest()..parameter = 'disable_constructor_args',
+        CodeGeneratorResponse())!;
     final fg = FileGenerator(fd, options);
-    final mg = MessageGenerator.topLevel(md, fg, {}, null, <String>{}, 0);
+    final mg =
+        MessageGenerator.topLevel(md, fg, {}, null, <String>{}, 0, false);
 
     final ctx = GenerationContext(options);
     mg.register(ctx);

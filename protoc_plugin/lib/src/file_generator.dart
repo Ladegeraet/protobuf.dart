@@ -166,14 +166,21 @@ class FileGenerator extends ProtobufContainer {
           descriptor.enumType[i], this, usedTopLevelNames, i));
     }
     for (var i = 0; i < descriptor.messageType.length; i++) {
-      messageGenerators.add(MessageGenerator.topLevel(descriptor.messageType[i],
-          this, declaredMixins, defaultMixin, usedTopLevelNames, i));
+      messageGenerators.add(MessageGenerator.topLevel(
+          descriptor.messageType[i],
+          this,
+          declaredMixins,
+          defaultMixin,
+          usedTopLevelNames,
+          i,
+          options.useNullable));
     }
     for (var i = 0; i < descriptor.extension.length; i++) {
       extensionGenerators.add(ExtensionGenerator.topLevel(
           descriptor.extension[i], this, usedExtensionNames, i));
     }
-    for (final service in descriptor.service) {
+    for (var i = 0; i < descriptor.service.length; i++) {
+      final service = descriptor.service[i];
       if (options.useGrpc) {
         grpcGenerators.add(GrpcServiceGenerator(service, this));
       } else {
@@ -181,7 +188,7 @@ class FileGenerator extends ProtobufContainer {
             ServiceGenerator(service, this, usedTopLevelServiceNames);
         serviceGenerators.add(serviceGen);
         clientApiGenerators
-            .add(ClientApiGenerator(serviceGen, usedTopLevelNames));
+            .add(ClientApiGenerator(serviceGen, usedTopLevelNames, i));
       }
     }
   }
@@ -340,6 +347,9 @@ class FileGenerator extends ProtobufContainer {
     for (final target in enumImports) {
       _addImport(importWriter, config, target, '.pbenum.dart');
     }
+
+    importWriter.addExport(_protobufImportUrl,
+        members: ['GeneratedMessageGenericExtensions']);
 
     for (final publicDependency in descriptor.publicDependency) {
       _addExport(importWriter, config,
@@ -707,6 +717,7 @@ class ConditionalConstDefinition {
 const _fileIgnores = {
   'annotate_overrides',
   'camel_case_types',
+  'comment_references',
   'constant_identifier_names',
   'library_prefixes',
   'non_constant_identifier_names',
